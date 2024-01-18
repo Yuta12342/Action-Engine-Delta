@@ -1,3 +1,48 @@
+# Friday Night Funkin' - Action Engine
+Engine built off Psych Engine EK to add more LUA and Softcoded Functionality into the game... plus KEYS!
+
+## Current plans for Engine:
+* [ ] Softcoded Options for LUA Scripts
+* [ ] JSON Menu Editing
+* [x] LUA Menu Use
+* [ ] LUA Menu Manipulation
+* [ ] LUA Menu States
+* [ ] Event Sustains
+* [ ] Global LUA Scripts (Runs on all states, excluding Editors.)
+* [ ] GF Strum (Toggle) for both GF Sections and GF Notes
+* [x] GF+ Note that allows for GF to duet with whoever's side the note is on.
+* [ ] Duet Section Toggle (Camera to middle, and zoom to both Character Cameras + Hitbox, or include Duet Camera in Stage JSON.)
+* [x] Better Autosave (Keep FNF Autosave but add additional Backup Folder after Autosave to ensure safety of files.)
+* [ ] Week / Week Menus Seperation for Mods (To prevent LUA Script conflicts)
+* [ ] Chart Editor Addons (LUA Scripts that can add Chart Variables specific to the mod or song, seperated by mini-menus. (Allows adding Chart Editor Buttons and switches for use in different charts.)
+* [ ] Better Character Editor
+* [ ] (Character Editor+) Sprite Parts (The ability to connect multiple sprites as part of a character.)
+* [ ] 0.6.x - 0.7.x Cross-Mod Support.
+* [ ] Multi-Engine Mod Support
+* [ ] Mod Achievements in LUA.
+* [ ] Stage Editor
+* [ ] Gimmick Notes (A Special type of Custom Note that acts outside of the chart for easier porting to other engines) with Custom Notetype support.
+* [x] Streamer VS Chat - with LUA Support.
+* [ ] Archipelago Support.
+* [ ] Better Chart Editor functionality - Better Section Management - Chart Offset - Deletion/Addition of Sections
+* [ ] Slightly more informative Crash Handler
+* [ ] kill the fish
+* (More ideas coming!)
+
+## Future Ideas
+- Multi-Note Animation Native Support
+
+## Unlikely ideas
+- Softcoded Extra Keys (Allow for as many keys as you want for a song in the engine, as long as a Noteskin supports it.)
+
+## Implementations
+* LUA in Menus
+
+
+
+
+## Original Engine Info for Psych Engine
+
 # Friday Night Funkin' - Psych Engine
 Engine originally used on [Mind Games Mod](https://gamebanana.com/mods/301107), intended to be a fix for the vanilla version's many issues while keeping the casual play aspect of it. Also aiming to be an easier alternative to newbie coders.
 
