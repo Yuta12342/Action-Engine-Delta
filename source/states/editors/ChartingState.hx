@@ -55,6 +55,7 @@ class ChartingState extends MusicBeatState
 		'Hey!',
 		'Hurt Note',
 		'GF Sing',
+		'GF Duet',
 		'No Animation'
 	];
 	public var ignoreWarnings = false;
@@ -79,7 +80,9 @@ class ChartingState extends MusicBeatState
 		['Change Character', "Value 1: Character to change (Dad, BF, GF)\nValue 2: New character's name"],
 		['Change Scroll Speed', "Value 1: Scroll Speed Multiplier (1 is default)\nValue 2: Time it takes to change fully in seconds."],
 		['Set Property', "Value 1: Variable name\nValue 2: New value"],
-		['Play Sound', "Value 1: Sound file name\nValue 2: Volume (Default: 1), ranges from 0 to 1"]
+		['Play Sound', "Value 1: Sound file name\nValue 2: Volume (Default: 1), ranges from 0 to 1"],
+		['Change Mania', "Value 1: The new mania value (min: " + Note.minMania + "; max: " + Note.maxMania + ")\nValue 2: Skip old strum fade tween\nPut 'true' to skip it, anything else or blank to not."],
+		['Change Mania (Special)', "Value 1: The new special mania value (min: " + Note.minMania + "; max: " + Note.maxMania + ")\nValue 2: Skip old strum fade tween\nPut 'true' to skip it, anything else or blank to not."]
 	];
 
 	var _file:FileReference;
@@ -205,7 +208,9 @@ class ChartingState extends MusicBeatState
 				player2: 'dad',
 				gfVersion: 'gf',
 				speed: 1,
-				stage: 'stage'
+				stage: 'stage',
+				mania: Note.defaultMania,
+				EKSkin: true,
 			};
 			addSection();
 			PlayState.SONG = _song;
@@ -213,9 +218,15 @@ class ChartingState extends MusicBeatState
 
 		// Paths.clearMemory();
 
+		PlayState.mania = _song.mania;
+		PlayState.EKMode = _song.EKSkin;
+
 		#if DISCORD_ALLOWED
 		// Updating Discord Rich Presence
-		DiscordClient.changePresence("Chart Editor", StringTools.replace(_song.song, '-', ' '));
+		var s_termination = "s";
+		if (_song.mania == 0)
+			s_termination = "";
+		DiscordClient.changePresence("Chart Editor", StringTools.replace(_song.song, '-', ' ') + " (" + (_song.mania + 1) + " key" + s_termination + ")");
 		#end
 
 		vortex = FlxG.save.data.chart_vortex;
@@ -289,8 +300,8 @@ class ChartingState extends MusicBeatState
 		add(quant);
 
 		strumLineNotes = new FlxTypedGroup<StrumNote>();
-		for (i in 0...8){
-			var note:StrumNote = new StrumNote(GRID_SIZE * (i+1), strumLine.y, i % 4, 0);
+		for (i in 0...(Note.ammo[_song.mania] * 2)){
+			var note:StrumNote = new StrumNote(GRID_SIZE * (i+1), strumLine.y, i % Note.ammo[_song.mania], 0);
 			note.setGraphicSize(GRID_SIZE, GRID_SIZE);
 			note.updateHitbox();
 			note.playAnim('static', true);
@@ -431,6 +442,14 @@ class ChartingState extends MusicBeatState
 		{
 			PlayState.SONG = Song.parseJSONshit(FlxG.save.data.autosave);
 			MusicBeatState.resetState();
+		});
+
+		var loadButton:FlxButton = new FlxButton(loadEventJson.x, loadEventJson.y + 30, "Load JSON", function()
+		{
+			openSubState(new Prompt('This action will clear current progress.\n\nProceed?', 0, function()
+			{
+				load();
+			}, null, ignoreWarnings));
 		});
 
 		var loadEventJson:FlxButton = new FlxButton(loadAutosaveBtn.x, loadAutosaveBtn.y + 30, 'Load Events', function()
@@ -589,6 +608,21 @@ class ChartingState extends MusicBeatState
 		stageDropDown.selectedLabel = _song.stage;
 		blockPressWhileScrolling.push(stageDropDown);
 
+		var stepperMania:FlxUINumericStepper = new FlxUINumericStepper(100, stepperSpeed.y, 1, 3, Note.minMania, Note.maxMania, 1);
+		stepperMania.value = _song.mania;
+		stepperMania.name = 'mania';
+		blockPressWhileTypingOnStepper.push(stepperMania);
+
+		var check_EK = new FlxUICheckBox(noteSkinInputText.x + 180, noteSkinInputText.y, null, null, "EK Skin?", 100);
+		check_EK.checked = _song.EKSkin;
+		// _song.EKSkin = check_EK.checked;
+		check_EK.callback = function()
+		{
+			_song.EKSkin = check_EK.checked;
+			updateGrid();
+			// trace('CHECKED!');
+		};
+
 		var tab_group_song = new FlxUI(null, UI_box);
 		tab_group_song.name = "Song";
 		tab_group_song.add(UI_songTitle);
@@ -597,6 +631,7 @@ class ChartingState extends MusicBeatState
 		tab_group_song.add(clear_events);
 		tab_group_song.add(clear_notes);
 		tab_group_song.add(saveButton);
+		tab_group_song.add(loadButton);
 		tab_group_song.add(saveEvents);
 		tab_group_song.add(reloadSong);
 		tab_group_song.add(reloadSongJson);
@@ -604,9 +639,12 @@ class ChartingState extends MusicBeatState
 		tab_group_song.add(loadEventJson);
 		tab_group_song.add(stepperBPM);
 		tab_group_song.add(stepperSpeed);
+		tab_group_song.add(stepperMania);
+		tab_group_song.add(check_EK);
 		tab_group_song.add(new FlxText(stepperBPM.x, stepperBPM.y - 15, 0, 'Song BPM:'));
 		tab_group_song.add(new FlxText(stepperBPM.x + 100, stepperBPM.y - 15, 0, 'Song Offset:'));
 		tab_group_song.add(new FlxText(stepperSpeed.x, stepperSpeed.y - 15, 0, 'Song Speed:'));
+		tab_group_song.add(new FlxText(stepperMania.x, stepperMania.y - 15, 0, 'Mania:'));
 		tab_group_song.add(new FlxText(player2DropDown.x, player2DropDown.y - 15, 0, 'Opponent:'));
 		tab_group_song.add(new FlxText(gfVersionDropDown.x, gfVersionDropDown.y - 15, 0, 'Girlfriend:'));
 		tab_group_song.add(new FlxText(player1DropDown.x, player1DropDown.y - 15, 0, 'Boyfriend:'));
@@ -777,10 +815,25 @@ class ChartingState extends MusicBeatState
 			for (i in 0..._song.notes[curSec].sectionNotes.length)
 			{
 				var note:Array<Dynamic> = _song.notes[curSec].sectionNotes[i];
-				note[1] = (note[1] + 4) % 8;
+				note[1] = (note[1] + Note.ammo[_song.mania]) % (Note.ammo[_song.mania] * 2);
 				_song.notes[curSec].sectionNotes[i] = note;
 			}
 			updateGrid();
+		});
+
+		var playHereButton:FlxButton = new FlxButton(pasteButton.x, swapSection.y, "Play Here", function()
+		{
+			autosaveSong();
+			FlxG.mouse.visible = false;
+			PlayState.SONG = _song;
+			PlayState.startOnTime = sectionStartTime();
+			FlxG.sound.music.stop();
+			if (vocals != null)
+				vocals.stop();
+
+			// if(_song.stage == null) _song.stage = stageDropDown.selectedLabel;
+			StageData.loadDirectory(_song);
+			LoadingState.loadAndSwitchState(new PlayState());
 		});
 
 		var stepperCopy:FlxUINumericStepper = null;
@@ -831,9 +884,9 @@ class ChartingState extends MusicBeatState
 			{
 				var boob = note[1];
 				if (boob>3){
-					boob -= 4;
+					boob -= Note.ammo[_song.mania];
 				}else{
-					boob += 4;
+					boob += Note.ammo[_song.mania];
 				}
 
 				var copiedNote:Array<Dynamic> = [note[0], boob, note[2], note[3]];
@@ -852,9 +905,9 @@ class ChartingState extends MusicBeatState
 			var duetNotes:Array<Array<Dynamic>> = [];
 			for (note in _song.notes[curSec].sectionNotes)
 			{
-				var boob = note[1]%4;
-				boob = 3 - boob;
-				if (note[1] > 3) boob += 4;
+				var boob = note[1]%Note.ammo[_song.mania];
+				boob = _song.mania - boob;
+				if (note[1] > _song.mania) boob += Note.ammo[_song.mania];
 
 				note[1] = boob;
 				var copiedNote:Array<Dynamic> = [note[0], boob, note[2], note[3]];
@@ -1612,6 +1665,10 @@ class ChartingState extends MusicBeatState
 				case 'voices_opp_volume':
 					opponentVocals.volume = nums.value;
 					if(check_mute_vocals_opponent.checked) opponentVocals.volume = 0;
+
+				case 'mania':
+					_song.mania = Std.int(nums.value);
+					reloadGridLayer();
 			}
 		}
 		else if(id == FlxUIInputText.CHANGE_EVENT && (sender is FlxUIInputText)) {
@@ -1689,11 +1746,55 @@ class ChartingState extends MusicBeatState
 		return daPos;
 	}
 
+	public function saveSession()
+	{
+		if (!FileSystem.exists("./chartSession/"))
+			FileSystem.createDirectory("./chartSession/");
+
+		var sessionData:String = Json.stringify({
+			"song": _song
+		});
+
+		var path:String = "./chartSession/" + "sessionData" + ".json";
+
+		Sys.println(sessionData);
+
+		File.saveContent(path, sessionData);
+	}
+
 	var lastConductorPos:Float;
 	var colorSine:Float = 0;
 	override function update(elapsed:Float)
 	{
+		Main.setExitHandler(function()
+		{
+			trace("Quit on Chart Editor... Autosaving");
+			FlxG.save.data.autosave = Json.stringify({
+				"song": _song
+			});
+			FlxG.save.flush();
+			var path:String;
+			var dateNow:String = Date.now().toString();
+
+			dateNow = dateNow.replace(" ", "_");
+			dateNow = dateNow.replace(":", "'");
+
+			path = "./backups/" + currentSongName + "/" + "chartBackup_" + dateNow + ".json";
+			if (!FileSystem.exists("./backups/"))
+				FileSystem.createDirectory("./backups/");
+
+			if (!FileSystem.exists("./backups/" + currentSongName + "/"))
+				FileSystem.createDirectory("./backups/" + currentSongName + "/");
+
+			File.saveContent(path, FlxG.save.data.autosave);
+
+			Sys.println("Song Backed up.");
+			Sys.println("Backup was made in " + Path.normalize(path));
+			Sys.exit(8);
+		});
 		curStep = recalculateSteps();
+
+		PlayState.mania = _song.mania;
 
 		if(FlxG.sound.music.time < 0) {
 			FlxG.sound.music.pause();
@@ -1708,7 +1809,7 @@ class ChartingState extends MusicBeatState
 		_song.song = UI_songTitle.text;
 
 		strumLineUpdateY();
-		for (i in 0...8){
+		for (i in 0...Note.ammo[_song.mania] * 2){
 			strumLineNotes.members[i].y = strumLine.y;
 		}
 
@@ -2118,7 +2219,7 @@ class ChartingState extends MusicBeatState
 		Conductor.songPosition = FlxG.sound.music.time;
 		strumLineUpdateY();
 		camPos.y = strumLine.y;
-		for (i in 0...8){
+		for (i in 0...umLineNotes.members.length){
 			strumLineNotes.members[i].y = strumLine.y;
 			strumLineNotes.members[i].alpha = FlxG.sound.music.playing ? 1 : 0.35;
 		}
@@ -2247,6 +2348,18 @@ class ChartingState extends MusicBeatState
 	var lastSecBeatsNext:Float = 0;
 	var columns:Int = 9;
 	function reloadGridLayer() {
+		GRID_SIZE = Note.gridSizes[_song.mania];
+
+		PlayState.mania = _song.mania;
+
+		columns = Note.ammo[_song.mania] * 2 + 1;
+
+		if (dummyArrow != null)
+		{
+			dummyArrow.setGraphicSize(GRID_SIZE, GRID_SIZE);
+			dummyArrow.updateHitbox();
+		}
+		
 		gridLayer.clear();
 		gridBG = FlxGridOverlay.create(1, 1, columns, Std.int(getSectionBeats() * 4 * zoomList[curZoom]));
 		gridBG.antialiasing = false;
